@@ -97,31 +97,31 @@ npm run benchmark
 The benchmarks use 8 destinations (8! = 40,320 permutations) to stress test the implementations. Here are the latest results:
 
 1. Rust:
-   - By-reference: ~16.5ms (min: 16.24ms, max: 16.80ms)
-   - By-owned: ~18.3ms (min: 18.07ms, max: 18.49ms)
-   - Difference: ~11% slower for owned
-   - Operations per second: ~60.6 (ref), ~54.7 (owned)
+   - By-reference: ~6.87ms (min: 6.73ms, max: 7.01ms)
+   - By-owned: ~7.33ms (min: 7.14ms, max: 7.55ms)
+   - Difference: ~6.7% slower for owned
+   - Operations per second: ~145.6 (ref), ~136.5 (owned)
 
 2. Python:
-   - By-reference: ~206.8ms (min: 172.8ms, max: 246.7ms)
-   - Operations per second: ~4.84
-   - Standard deviation: ~31.8ms
+   - By-reference: ~210.54ms (min: 195.72ms, max: 233.54ms)
+   - Operations per second: ~4.75
+   - Standard deviation: ~12.48ms
 
 3. TypeScript (Node.js):
-   - By-reference: ~779.7ms (min: ~582ms, max: ~978ms)
-   - Operations per second: ~1.28
-   - Standard deviation: ~197.9ms
+   - By-reference: ~580.48ms (min: ~527.35ms, max: ~621.31ms)
+   - Operations per second: ~1.72
+   - Standard deviation: ~53.13ms
 
 Performance ranking (fastest to slowest):
-1. Rust: ~16.5ms
-2. Python: ~206.8ms (12.5x slower than Rust)
-3. TypeScript: ~779.7ms (47.3x slower than Rust, 3.8x slower than Python)
+1. Rust: ~6.87ms
+2. Python: ~210.54ms (30.6x slower than Rust)
+3. TypeScript: ~580.48ms (84.5x slower than Rust, 2.76x slower than Python)
 
 Key observations:
-- Rust shows the most consistent performance with low standard deviation
-- Python has moderate variance in execution time
-- TypeScript shows the highest variance in execution time
-- All implementations show some performance regression compared to previous runs
+- Rust shows significant performance improvement after removing caching
+- Python maintains relatively consistent performance
+- TypeScript shows improved consistency in execution time with lower variance
+- All implementations maintain their relative performance rankings
 
 ## Code Complexity Analysis
 

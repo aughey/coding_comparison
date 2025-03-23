@@ -1,5 +1,5 @@
 import { Suite } from 'benchmark';
-import { travelingSalesman, cachedFn } from './traveling_salesman';
+import { travelingSalesman } from './traveling_salesman';
 
 function generateStressTestDestinations(): number[] {
     // Using 8 destinations will give us 8! = 40320 permutations
@@ -15,8 +15,8 @@ const destinations = generateStressTestDestinations();
 const start = 0;
 const end = 9;
 
-// Create cached distance functions
-const computeDistanceRef = cachedFn((pair: [number, number]) => Math.abs(pair[0] - pair[1]));
+// Create distance function
+const computeDistanceRef = (pair: [number, number]) => Math.abs(pair[0] - pair[1]);
 
 // Add benchmarks
 suite

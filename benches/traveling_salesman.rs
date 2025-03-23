@@ -1,4 +1,4 @@
-use coding_compairson::{cached_fn, traveling_salesman};
+use coding_compairson::{hand_rolled_traveling_salesman, traveling_salesman};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 // Generate a list of destinations that will stress the algorithm
@@ -16,7 +16,6 @@ fn benchmark_traveling_salesman(c: &mut Criterion) {
     // Benchmark the referenced version
     c.bench_function("traveling_salesman_ref", |b| {
         let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
-        let compute_distance = cached_fn(compute_distance);
 
         b.iter(|| {
             traveling_salesman(
@@ -31,7 +30,6 @@ fn benchmark_traveling_salesman(c: &mut Criterion) {
     // Benchmark the owned version
     c.bench_function("traveling_salesman_owned", |b| {
         let compute_distance = |pair: (i32, i32)| pair.0.abs_diff(pair.1);
-        let compute_distance = cached_fn(compute_distance);
 
         b.iter(|| {
             traveling_salesman(
@@ -39,6 +37,17 @@ fn benchmark_traveling_salesman(c: &mut Criterion) {
                 black_box(start),
                 black_box(end),
                 &compute_distance,
+            )
+        });
+    });
+
+    // Benchmark the hand-rolled version
+    c.bench_function("hand_rolled_traveling_salesman", |b| {
+        b.iter(|| {
+            hand_rolled_traveling_salesman(
+                black_box(&destinations),
+                black_box(&start),
+                black_box(&end),
             )
         });
     });

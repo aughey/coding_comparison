@@ -73,6 +73,39 @@ where
     }
 }
 
+pub fn hand_rolled_traveling_salesman<'a>(
+    destination: &'a [i32],
+    start: &'a i32,
+    end: &'a i32,
+) -> Option<Vec<&'a i32>> {
+    let mut min_distance = None;
+    let mut min_route = None;
+
+    for perm in destination.iter().permutations(destination.len()) {
+        let mut distance = 0;
+        for i in 1..perm.len() {
+            distance += perm[i].abs_diff(*perm[i - 1]);
+        }
+
+        // add from start to the first
+        distance += start.abs_diff(*perm[0]);
+        // add from end to the last
+        distance += end.abs_diff(*perm[perm.len() - 1]);
+
+        if min_distance.is_none() || distance < min_distance.unwrap() {
+            min_distance = Some(distance);
+            min_route = Some(perm.to_vec());
+        }
+    }
+
+    // prepend start and append end
+    let mut route = vec![start];
+    route.extend(min_route.unwrap());
+    route.push(end);
+
+    Some(route)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -123,5 +156,15 @@ mod tests {
         assert_eq!(cached_f(5), 10);
         assert_eq!(cached_f(5), 10); // Second call uses cache
         assert_eq!(call_count.get(), 1); // Verify f was only called once
+    }
+
+    #[test]
+    fn test_hand_rolled_traveling_salesman() {
+        let destinations = vec![1, 2, 3, 4, 5];
+        let start = 0;
+        let end = 6;
+
+        let result = hand_rolled_traveling_salesman(&destinations, &start, &end);
+        assert_eq!(result, Some(vec![&0, &1, &2, &3, &4, &5, &6]));
     }
 }

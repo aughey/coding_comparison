@@ -1,4 +1,4 @@
-from traveling_salesman import traveling_salesman, cached_fn
+from traveling_salesman import traveling_salesman
 from typing import Tuple
 
 
@@ -13,7 +13,6 @@ def test_traveling_salesman_ref(benchmark):
     start = 0
     end = 9
 
-    @cached_fn
     def compute_distance(pair: Tuple[int, int]) -> int:
         return abs(pair[0] - pair[1])
 
