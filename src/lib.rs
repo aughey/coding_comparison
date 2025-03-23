@@ -2,6 +2,28 @@ use std::{cell::RefCell, collections::HashMap, iter::Sum};
 
 use itertools::Itertools as _;
 
+fn pairwise<T>(mut iter: impl Iterator<Item = T>) -> impl Iterator<Item = (T, T)>
+where
+    T: Clone,
+{
+    let mut prev = iter.next();
+    iter.map(move |next| {
+        let p = prev.replace(next.clone()).unwrap();
+        (p, next)
+    })
+}
+
+fn total_distance_of_route<Destination, Distance>(
+    route: impl Iterator<Item = Destination>,
+    compute_distance: impl Fn((Destination, Destination)) -> Distance,
+) -> Distance
+where
+    Destination: Clone,
+    Distance: Sum + Clone,
+{
+    pairwise(route).map(compute_distance).sum()
+}
+
 /// For all of the inner destinations, find the shortest path that visits all of them starting
 /// at `start` and ending at `end`.
 ///
@@ -27,19 +49,15 @@ where
     let permutations = inner_destinations.permutations(destinations_count);
 
     // Create a route for each permutation that includes the start and end destinations
-    let routes = permutations.map(|permutation| {
+    let all_routes = permutations.map(|permutation| {
         std::iter::once(start.clone())
             .chain(permutation.into_iter())
             .chain(std::iter::once(end.clone()))
     });
     // Calculate the distance for each route
-    let distances = routes.map(|route| {
+    let distances = all_routes.map(|route| {
         (
-            route
-                .clone()
-                .tuple_windows()
-                .map(|pair| compute_distance(pair))
-                .sum::<Distance>(),
+            total_distance_of_route(route.clone(), &compute_distance),
             route,
         )
     });
@@ -87,15 +105,19 @@ pub fn hand_rolled_traveling_salesman<'a>(
             distance += perm[i].abs_diff(*perm[i - 1]);
         }
 
+        // Safety: Safe because perm.len() >= 1
         // add from start to the first
         distance += start.abs_diff(*perm[0]);
         // add from end to the last
         distance += end.abs_diff(*perm[perm.len() - 1]);
 
-        if min_distance.is_none() || distance < min_distance.unwrap() {
-            min_distance = Some(distance);
-            min_route = Some(perm.to_vec());
+        if let Some(min_distance) = min_distance {
+            if distance >= min_distance {
+                continue; // skip if this route is longer than the current minimum
+            }
         }
+        min_distance = Some(distance);
+        min_route = Some(perm.to_vec());
     }
 
     // prepend start and append end
@@ -108,6 +130,8 @@ pub fn hand_rolled_traveling_salesman<'a>(
 
 #[cfg(test)]
 mod tests {
+
+    use std::collections::HashSet;
 
     use super::*;
 
@@ -130,6 +154,27 @@ mod tests {
 
         let result = traveling_salesman(destinations.into_iter(), start, end, compute_distance);
         assert_eq!(result, Some(vec![0, 1, 2, 3, 4, 5, 6]));
+    }
+
+    /// Test to ensure that the hand-rolled version of the traveling salesman
+    /// algorithm matches the generic version for a set of random destinations.
+    #[test]
+    fn test_random_destinations_match_all() {
+        for _ in 0..10 {
+            let destinations =
+                HashSet::<i32>::from_iter((1..=5).map(|_| rand::random::<i32>() % 100));
+
+            let start = destinations.clone().into_iter().min().unwrap_or(0);
+            let end = destinations.clone().into_iter().max().unwrap_or(1);
+
+            let dv = destinations.clone().into_iter().collect::<Vec<_>>();
+            let result = hand_rolled_traveling_salesman(&dv, &start, &end);
+
+            let other_result = traveling_salesman(destinations.iter(), &start, &end, |pair| {
+                pair.0.abs_diff(*pair.1)
+            });
+            assert_eq!(result, other_result);
+        }
     }
 
     #[test]
