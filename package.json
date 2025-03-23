@@ -4,10 +4,16 @@
     "description": "Traveling Salesman Problem implementation in TypeScript",
     "main": "traveling_salesman.ts",
     "scripts": {
-        "test": "ts-node traveling_salesman.ts"
+        "test": "jest"
     },
     "devDependencies": {
         "ts-node": "^10.9.2",
-        "typescript": "^5.3.3"
+        "typescript": "^5.3.3",
+        "jest": "^29.7.0",
+        "@types/jest": "^29.5.12",
+        "ts-jest": "^29.1.2"
+    },
+    "dependencies": {
+        "itertools-ts": "^2.2.0"
     }
 }

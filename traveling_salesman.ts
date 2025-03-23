@@ -1,71 +1,120 @@
+import { permutations } from 'itertools-ts/lib/combinatorics';
+import { single, reduce } from 'itertools-ts';
+
 /**
- * For all of the inner destinations, find the shortest path that visits all of them starting
- * at `start` and ending at `end`.
+ * Calculates the total distance of a route by summing the distances between consecutive points.
  * 
- * @param innerDestinations - The destinations to visit
- * @param start - The starting destination
- * @param end - The ending destination
- * @param computeDistance - A function that computes the distance between two destinations
- * @returns The shortest path that visits all of the inner destinations starting at `start` and ending at `end`
+ * @template T - The type of elements in the route
+ * @param {Iterable<T>} route - The route to calculate distance for
+ * @param {(pair: [T, T]) => number} computeDistance - Function to compute distance between two points
+ * @returns {number} The total distance of the route
  */
-export function travelingSalesman<T, Distance extends number>(
-    innerDestinations: T[],
+function total_distance<T>(route: Iterable<T>, computeDistance: (pair: [T, T]) => number): number {
+    let distance = 0;
+    for (const [a, b] of single.pairwise(route)) {
+        distance += computeDistance([a, b]);
+    }
+    return distance;
+}
+
+/**
+ * Calculates distances for multiple routes.
+ * 
+ * @template T - The type of elements in the routes
+ * @param {Iterable<Iterable<T>>} routes - Collection of routes to calculate distances for
+ * @param {(pair: [T, T]) => number} computeDistance - Function to compute distance between two points
+ * @yields {[number, T[]]} Tuples containing the distance and route array for each route
+ */
+function* calculateDistances<T>(routes: Iterable<Iterable<T>>, computeDistance: (pair: [T, T]) => number): Generator<[number, T[]]> {
+    for (const route of routes) {
+        // we do unfold the route to an array so we can provide the route as a return value
+        const routeArray = Array.from(route);
+        const distance = total_distance(routeArray, computeDistance);
+
+        yield [distance, routeArray];
+    }
+}
+
+/**
+ * Generates a route that starts with a specific point, includes inner points, and ends with another specific point.
+ * 
+ * @template T - The type of elements in the route
+ * @param {T} start - The starting point
+ * @param {T} end - The ending point
+ * @param {Iterable<T>} inner - The inner points to include in the route
+ * @yields {T} The complete route including start, inner points, and end
+ */
+function* startAndEnd<T>(start: T, end: T, inner: Iterable<T>) {
+    yield start;
+    yield* inner;
+    yield end;
+}
+
+/**
+ * Generates complete routes by combining start and end points with inner routes.
+ * 
+ * @template T - The type of elements in the routes
+ * @param {T} start - The starting point
+ * @param {T} end - The ending point
+ * @param {Iterable<Iterable<T>>} inner - Collection of inner routes to combine
+ * @yields {Iterable<T>} Complete routes including start, inner points, and end
+ */
+function* generateRoutes<T>(start: T, end: T, inner: Iterable<Iterable<T>>) {
+    for (const innerRoute of inner) {
+        yield startAndEnd(start, end, innerRoute);
+    }
+}
+
+/**
+ * Solves the traveling salesman problem by finding the shortest path that visits all destinations.
+ * The path must start at a specific point and end at another specific point.
+ * 
+ * @template T - The type of destinations
+ * @param {ArrayLike<T> & Iterable<T>} innerDestinations - The destinations to visit
+ * @param {T} start - The starting destination
+ * @param {T} end - The ending destination
+ * @param {(pair: [T, T]) => number} computeDistance - Function to compute distance between two destinations
+ * @returns {T[]} The shortest path that visits all destinations
+ * @throws {Error} If no valid route is found
+ */
+export function travelingSalesman<T>(
+    innerDestinations: ArrayLike<T> & Iterable<T>,
     start: T,
     end: T,
-    computeDistance: (pair: [T, T]) => Distance
+    computeDistance: (pair: [T, T]) => number
 ): T[] {
     // Get all permutations of the inner destinations
     const destinationsCount = innerDestinations.length;
-    const permutations = getPermutations(innerDestinations, destinationsCount);
+    const permutationsIter = permutations(innerDestinations, destinationsCount);
 
     // Create a route for each permutation that includes the start and end destinations
-    const routes = permutations.map(permutation => {
-        return [start, ...permutation, end];
-    });
+    const routes = generateRoutes(start, end, permutationsIter);
 
-    // Calculate the distance for each route
-    const routeDistances = routes.map(route => {
-        const distances: Distance[] = [];
-        for (let i = 0; i < route.length - 1; i++) {
-            distances.push(computeDistance([route[i], route[i + 1]]));
-        }
-        return {
-            distance: distances.reduce((a, b) => (a + b) as Distance, 0 as Distance),
-            route
-        };
-    });
+    const distances = calculateDistances(routes, computeDistance);
 
-    // Find the route with the shortest distance
-    const minRoute = routeDistances.reduce((min, curr) =>
-        curr.distance < min.distance ? curr : min
-    );
+    // Find the route with the minimum distance
+    const minRoute = reduce.toMin(distances, ([distance]) => distance);
 
-    return minRoute.route;
+    return minRoute![1];
 }
 
 /**
- * Generates all possible permutations of an array
- */
-function getPermutations<T>(arr: T[], size: number): T[][] {
-    if (size === 0) return [[]];
-
-    const permutations: T[][] = [];
-
-    for (let i = 0; i < arr.length; i++) {
-        const current = arr[i];
-        const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
-        const subPermutations = getPermutations(remaining, size - 1);
-
-        for (const subPerm of subPermutations) {
-            permutations.push([current, ...subPerm]);
-        }
-    }
-
-    return permutations;
-}
-
-/**
- * Caches the results of any function call using a Map
+ * Creates a cached version of a function that stores results in memory to avoid recomputation.
+ * 
+ * @template Input - The type of the function input
+ * @template Output - The type of the function output
+ * @param {(input: Input) => Output} f - The function to cache
+ * @returns {(input: Input) => Output} A new function that caches results of the original function
+ * @example
+ * ```typescript
+ * const expensiveFn = (n: number) => { 
+ *   // expensive computation
+ *   return n * n; 
+ * };
+ * const cachedExpensiveFn = cachedFn(expensiveFn);
+ * cachedExpensiveFn(5); // computes result
+ * cachedExpensiveFn(5); // returns cached result
+ * ```
  */
 export function cachedFn<Input, Output>(f: (input: Input) => Output): (input: Input) => Output {
     const cache = new Map<Input, Output>();
@@ -78,48 +127,4 @@ export function cachedFn<Input, Output>(f: (input: Input) => Output): (input: In
         cache.set(input, result);
         return result;
     };
-}
-
-// Example usage and tests
-function runTests() {
-    // Test with numbers
-    const destinations = [1, 2, 3, 4, 5];
-    const start = 0;
-    const end = 6;
-
-    // Works with references
-    const computeDistanceRef = cachedFn((pair: [number, number]): number =>
-        Math.abs(pair[0] - pair[1])
-    );
-
-    const result = travelingSalesman(
-        destinations,
-        start,
-        end,
-        computeDistanceRef
-    );
-    console.log('Result with references:', result);
-
-    // Test empty destinations
-    const emptyResult = travelingSalesman(
-        [],
-        0,
-        1,
-        computeDistanceRef
-    );
-    console.log('Empty destinations result:', emptyResult);
-
-    // Test single destination
-    const singleResult = travelingSalesman(
-        [1],
-        0,
-        2,
-        computeDistanceRef
-    );
-    console.log('Single destination result:', singleResult);
-}
-
-// Run tests if this file is executed directly
-if (typeof window === 'undefined') {
-    runTests();
 } 
