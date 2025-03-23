@@ -1,3 +1,4 @@
+import { time } from 'console';
 import { single, reduce } from 'itertools-ts';
 import { permutations } from 'itertools-ts/lib/combinatorics';
 
@@ -98,7 +99,11 @@ export function travelingSalesman<T>(
     // Find the route with the minimum distance
     const minRoute = reduce.toMin(distances, ([distance]) => distance);
 
-    return minRoute![1];
+    if (!minRoute) {
+        return [start, end];
+    } else {
+        return minRoute![1];
+    }
 }
 
 /**
@@ -130,4 +135,31 @@ export function cachedFn<Input, Output>(f: (input: Input) => Output): (input: In
         cache.set(input, result);
         return result;
     };
-} 
+}
+
+export function handRolledTravelingSalesman<T>(
+    destinations: ArrayLike<T> & Iterable<T>,
+    start: T,
+    end: T,
+    computeDistance: (pair: [T, T]) => number
+): T[] {
+    let minDistance = Infinity;
+    let minRoute: T[] = [];
+
+    const destinationsCount = destinations.length;
+    const permutationsIter = permutations(destinations, destinationsCount);
+
+    for (const route of permutationsIter) {
+        let distance = total_distance(route, computeDistance);
+
+        distance += computeDistance([start, route[0]]);
+        distance += computeDistance([route[route.length - 1], end]);
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            minRoute = route;
+        }
+    }
+
+    return [start, ...minRoute, end];
+}   

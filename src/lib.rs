@@ -2,6 +2,19 @@ use std::{cell::RefCell, collections::HashMap, iter::Sum, ops::Add};
 
 use itertools::Itertools as _;
 
+/// Returns pairs of adjacent elements from an iterator.
+///
+/// This function takes an iterator and returns a new iterator that yields pairs
+/// of adjacent elements (current, next). It's similar to the standard library's
+/// `.windows(2)` but works on any iterator, not just slices.
+///
+/// # Arguments
+///
+/// * `iter` - The input iterator
+///
+/// # Returns
+///
+/// An iterator that yields pairs of adjacent elements
 fn pairwise<T>(mut iter: impl Iterator<Item = T>) -> impl Iterator<Item = (T, T)>
 where
     T: Clone,
@@ -13,13 +26,23 @@ where
     })
 }
 
+/// Calculates the total distance of a route by summing the distances between consecutive destinations.
+///
+/// # Arguments
+///
+/// * `route` - An iterator over destinations
+/// * `compute_distance` - A function that computes the distance between two destinations
+///
+/// # Returns
+///
+/// The total distance of the route
 fn total_distance_of_route<'a, Destination, Distance>(
     route: impl Iterator<Item = &'a Destination>,
     compute_distance: impl Fn((&Destination, &Destination)) -> Distance,
 ) -> Distance
 where
     Destination: Clone + 'a,
-    Distance: Sum + Clone,
+    Distance: Sum,
 {
     pairwise(route).map(compute_distance).sum()
 }
@@ -38,32 +61,46 @@ pub fn traveling_salesman<Destinations, Destination, Distance>(
     start: Destination,
     end: Destination,
     compute_distance: impl Fn((&Destination, &Destination)) -> Distance,
-) -> Option<Vec<Destination>>
+) -> Vec<Destination>
 where
     Destinations: Iterator<Item = Destination> + ExactSizeIterator,
     Destination: Clone,
-    Distance: Ord + Sum<Distance> + Add<Distance, Output = Distance> + Clone,
+    Distance: Ord + Sum<Distance> + Add<Distance, Output = Distance>,
 {
     // Get all permutations of the inner destinations
-    let destinations_count = inner_destinations.len();
-    let permutations = inner_destinations.permutations(destinations_count);
+    let permutations = {
+        let count = inner_destinations.len();
+        inner_destinations
+            .permutations(count)
+            .filter(|r| !r.is_empty())
+    };
 
     // Calculate the distance for each route
+    // distance is a Iterator of tuples of (distance, route)
     let distances = permutations.map(|route| {
-        let mut dist = total_distance_of_route(route.iter().clone(), &compute_distance);
+        let inner_distance = total_distance_of_route(route.iter(), &compute_distance);
 
-        // add from start to the first destination
-        dist = dist + compute_distance((&start, &route[0]));
-        // add from the last destination to end
-        dist = dist + compute_distance((&route[route.len() - 1], &end));
-        (dist, route)
+        // Add the distance from the start to the first destination and from the last destination to the end
+        let total_distance = inner_distance
+            + compute_distance((&start, &route[0]))
+            + compute_distance((&route[route.len() - 1], &end));
+
+        (total_distance, route)
     });
 
     // Find the route with the shortest distance
-    let min = distances.min_by_key(|(distance, _)| distance.clone());
+    let min_route = distances
+        .min_by(|a, b| a.0.cmp(&b.0))
+        .map(|(_, route)| route);
 
-    // Return the route with the shortest distance
-    min.map(|(_, route)| route)
+    // Some extra gymnastics to build the return route with the start and end.
+    let mut route = Vec::with_capacity(min_route.as_ref().map(|r| r.len()).unwrap_or(0) + 2);
+    route.push(start);
+    if let Some(min_route) = min_route.as_ref() {
+        route.extend_from_slice(min_route.as_slice());
+    }
+    route.push(end);
+    route
 }
 
 /// Caches the results of any function call.
@@ -88,15 +125,34 @@ where
     }
 }
 
+/// A hand-optimized version of the traveling salesman algorithm for i32 destinations.
+///
+/// This implementation is specific to i32 types and uses a different approach
+/// than the generic version for potential performance benefits.
+///
+/// # Arguments
+///
+/// * `destination` - Slice of destinations to visit
+/// * `start` - The starting point
+/// * `end` - The ending point
+///
+/// # Returns
+///
+/// The shortest path that visits all destinations
 pub fn hand_rolled_traveling_salesman<'a>(
     destination: &'a [i32],
     start: &'a i32,
     end: &'a i32,
-) -> Option<Vec<&'a i32>> {
+) -> Vec<&'a i32> {
     let mut min_distance = None;
     let mut min_route = None;
 
-    for perm in destination.iter().permutations(destination.len()) {
+    for perm in destination
+        .iter()
+        .permutations(destination.len())
+        .filter(|p| !p.is_empty())
+    {
+        // Hand-calculate the distance of the pairs
         let mut distance = 0;
         for i in 1..perm.len() {
             distance += perm[i].abs_diff(*perm[i - 1]);
@@ -122,7 +178,7 @@ pub fn hand_rolled_traveling_salesman<'a>(
     route.extend(min_route.unwrap());
     route.push(end);
 
-    Some(route)
+    route
 }
 
 #[cfg(test)]
@@ -140,17 +196,14 @@ mod tests {
 
         // Works with references
         let compute_distance = |pair: (&&i32, &&i32)| pair.0.abs_diff(**pair.1);
-        let compute_distance = cached_fn(compute_distance);
 
         let result = traveling_salesman(destinations.iter(), &start, &end, compute_distance);
-        assert_eq!(result, Some(vec![&0, &1, &2, &3, &4, &5, &6]));
-
+        assert_eq!(result, vec![&0, &1, &2, &3, &4, &5, &6]);
         // Works with owned values
         let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
-        let compute_distance = cached_fn(compute_distance);
 
         let result = traveling_salesman(destinations.into_iter(), start, end, compute_distance);
-        assert_eq!(result, Some(vec![0, 1, 2, 3, 4, 5, 6]));
+        assert_eq!(result, vec![0, 1, 2, 3, 4, 5, 6]);
     }
 
     /// Test to ensure that the hand-rolled version of the traveling salesman
@@ -168,7 +221,7 @@ mod tests {
             let result = hand_rolled_traveling_salesman(&dv, &start, &end);
 
             let other_result = traveling_salesman(destinations.iter(), &start, &end, |pair| {
-                pair.0.abs_diff(*pair.1)
+                pair.0.abs_diff(**pair.1)
             });
             assert_eq!(result, other_result);
         }
@@ -183,7 +236,7 @@ mod tests {
         let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
 
         let result = traveling_salesman(destinations.into_iter(), start, end, compute_distance);
-        assert_eq!(result, Some(vec![0, 1]));
+        assert_eq!(result, vec![0, 1]);
     }
 
     #[test]
@@ -207,6 +260,6 @@ mod tests {
         let end = 6;
 
         let result = hand_rolled_traveling_salesman(&destinations, &start, &end);
-        assert_eq!(result, Some(vec![&0, &1, &2, &3, &4, &5, &6]));
+        assert_eq!(result, vec![&0, &1, &2, &3, &4, &5, &6]);
     }
 }

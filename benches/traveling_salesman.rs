@@ -15,7 +15,7 @@ fn benchmark_traveling_salesman(c: &mut Criterion) {
 
     // Benchmark the referenced version
     c.bench_function("traveling_salesman_ref", |b| {
-        let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
+        let compute_distance = |pair: (&&i32, &&i32)| pair.0.abs_diff(**pair.1);
 
         b.iter(|| {
             traveling_salesman(
@@ -29,7 +29,7 @@ fn benchmark_traveling_salesman(c: &mut Criterion) {
 
     // Benchmark the owned version
     c.bench_function("traveling_salesman_owned", |b| {
-        let compute_distance = |pair: (i32, i32)| pair.0.abs_diff(pair.1);
+        let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
 
         b.iter(|| {
             traveling_salesman(

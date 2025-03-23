@@ -1,5 +1,5 @@
 import { Suite } from 'benchmark';
-import { travelingSalesman } from './traveling_salesman';
+import { travelingSalesman, handRolledTravelingSalesman } from './traveling_salesman';
 
 function generateStressTestDestinations(): number[] {
     // Using 8 destinations will give us 8! = 40320 permutations
@@ -22,6 +22,18 @@ const computeDistanceRef = (pair: [number, number]) => Math.abs(pair[0] - pair[1
 suite
     .add('traveling_salesman_ref', () => {
         const result = travelingSalesman(
+            destinations,
+            start,
+            end,
+            computeDistanceRef
+        );
+        // Verify result is correct (should be in ascending order for this case)
+        if (JSON.stringify(result) !== JSON.stringify([0, ...Array.from({ length: 8 }, (_, i) => i + 1), 9])) {
+            throw new Error('Incorrect result');
+        }
+    })
+    .add('handrolled_traveling_salesman', () => {
+        const result = handRolledTravelingSalesman(
             destinations,
             start,
             end,
