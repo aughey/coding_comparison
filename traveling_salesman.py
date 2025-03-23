@@ -65,6 +65,47 @@ def traveling_salesman(
     min_route = min(route_distances, key=lambda x: x[0])
     return min_route[1]
 
+def hand_rolled_traveling_salesman(
+    inner_destinations: List[T],
+    start: T,
+    end: T,
+    compute_distance: Callable[[tuple[T, T]], Distance]
+) -> Optional[List[T]]:
+    """
+    A hand-rolled version of the traveling salesman function that uses a more manual approach
+    to find the shortest path.
+
+    Args:
+        inner_destinations: The destinations to visit.
+        start: The starting destination.
+        end: The ending destination.
+        compute_distance: A function that computes the distance between two destinations.
+
+    Returns:
+        The shortest path that visits all of the inner destinations starting at `start` and ending at `end`.
+    """
+    # Get all permutations of the inner destinations
+    destinations_count = len(inner_destinations)
+    all_permutations = itertools.permutations(
+        inner_destinations, destinations_count)
+
+    min_distance = None
+    min_route = None
+    for permutation in all_permutations:
+        dist = 0
+        it = iter(permutation)
+        prev = next(it)
+        for curr in it:
+            dist += compute_distance((prev, curr))
+            prev = curr
+        # Add distance from start to first destination and last destination to end
+        dist += compute_distance((start, permutation[0]))
+        dist += compute_distance((permutation[-1], end))
+        if min_distance is None or dist < min_distance:
+            min_distance = dist
+            min_route = [start] + list(permutation) + [end]
+
+    return min_route
 
 def cached_fn(func: Callable) -> Callable:
     """
@@ -138,6 +179,21 @@ class TestTravelingSalesman(unittest.TestCase):
         result = traveling_salesman(destinations, start, end, compute_distance)
         self.assertEqual(list(result), [0, 1, 2])
 
+    def test_hand_rolled_traveling_salesman(self):
+        # Test with hand-rolled version
+        # random destinations of 5 values
+        destinations = [10, 23, 13, 94, 35]
+        start = 0
+        end = 6
+
+        def compute_distance(pair: tuple[int, int]) -> int:
+            return abs(pair[0] - pair[1])
+
+        hand_result = hand_rolled_traveling_salesman(
+            destinations, start, end, compute_distance)
+        other_result = traveling_salesman(
+            destinations, start, end, compute_distance)
+        self.assertEqual(list(hand_result), list(other_result), "Hand-rolled version should match the main function result.")
 
 if __name__ == '__main__':
     unittest.main()
