@@ -11,14 +11,14 @@ use itertools::Itertools as _;
 /// compute_distance: A function that computes the distance between two destinations.
 ///
 /// Returns the shortest path that visits all of the inner destinations starting at `start` and ending at `end`.
-pub fn traveling_salesman<'a, Destinations, Destination, Distance>(
+pub fn traveling_salesman<Destinations, Destination, Distance>(
     inner_destinations: Destinations,
-    start: &'a Destination,
-    end: &'a Destination,
-    compute_distance: impl Fn((&'a Destination, &'a Destination)) -> Distance + 'a,
-) -> Option<Vec<&'a Destination>>
+    start: Destination,
+    end: Destination,
+    compute_distance: impl Fn((Destination, Destination)) -> Distance,
+) -> Option<Vec<Destination>>
 where
-    Destinations: Iterator<Item = &'a Destination> + ExactSizeIterator,
+    Destinations: Iterator<Item = Destination> + ExactSizeIterator,
     Destination: Clone,
     Distance: Ord + Sum<Distance> + Clone,
 {
@@ -28,9 +28,9 @@ where
 
     // Create a route for each permutation that includes the start and end destinations
     let routes = permutations.map(|permutation| {
-        std::iter::once(start)
+        std::iter::once(start.clone())
             .chain(permutation.into_iter())
-            .chain(std::iter::once(end))
+            .chain(std::iter::once(end.clone()))
     });
     // Calculate the distance for each route
     let distances = routes.map(|route| {
@@ -52,12 +52,10 @@ where
 }
 
 /// Caches the results of any function call.
-pub fn cached_fn<'a, Input, Output>(
-    f: impl Fn(Input) -> Output + 'a,
-) -> impl Fn(Input) -> Output + 'a
+pub fn cached_fn<Input, Output>(f: impl Fn(Input) -> Output) -> impl Fn(Input) -> Output
 where
-    Input: std::hash::Hash + std::cmp::Eq + Clone + 'a,
-    Output: Clone + 'a,
+    Input: std::hash::Hash + std::cmp::Eq + Clone,
+    Output: Clone,
 {
     let cache = HashMap::<Input, Output>::new();
     let cache = RefCell::new(cache);
