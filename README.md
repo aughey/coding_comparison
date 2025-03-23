@@ -97,31 +97,37 @@ npm run benchmark
 The benchmarks use 8 destinations (8! = 40,320 permutations) to stress test the implementations. Here are the latest results:
 
 1. Rust:
-   - By-reference: ~6.87ms (min: 6.73ms, max: 7.01ms)
-   - By-owned: ~7.33ms (min: 7.14ms, max: 7.55ms)
-   - Difference: ~6.7% slower for owned
-   - Operations per second: ~145.6 (ref), ~136.5 (owned)
+   - By-reference: ~1.62ms (min: 1.61ms, max: 1.62ms)
+   - By-owned: ~1.59ms (min: 1.58ms, max: 1.60ms)
+   - Hand-rolled: ~1.30ms (min: 1.29ms, max: 1.30ms)
+   - Operations per second: ~617.9 (ref), ~629.1 (owned), ~772.5 (hand-rolled)
 
 2. Python:
-   - By-reference: ~210.54ms (min: 195.72ms, max: 233.54ms)
-   - Operations per second: ~4.75
-   - Standard deviation: ~12.48ms
+   - By-reference: ~122.31ms (min: 116.22ms, max: 128.97ms)
+   - Hand-rolled: ~53.03ms (min: 52.56ms, max: 53.84ms) 
+   - Operations per second: ~8.18 (ref), ~18.86 (hand-rolled)
+   - Standard deviation: ~4.02ms (ref), ~0.39ms (hand-rolled)
 
 3. TypeScript (Node.js):
-   - By-reference: ~580.48ms (min: ~527.35ms, max: ~621.31ms)
-   - Operations per second: ~1.72
-   - Standard deviation: ~53.13ms
+   - By-reference: ~208.84ms (min: ~201.31ms, max: ~212.85ms)
+   - Hand-rolled: ~159.17ms (min: ~151.10ms, max: ~167.24ms)
+   - Operations per second: ~4.79 (ref), ~6.28 (hand-rolled)
+   - Standard deviation: ~7.53ms (ref), ~8.07ms (hand-rolled)
 
 Performance ranking (fastest to slowest):
-1. Rust: ~6.87ms
-2. Python: ~210.54ms (30.6x slower than Rust)
-3. TypeScript: ~580.48ms (84.5x slower than Rust, 2.76x slower than Python)
+1. Rust (hand-rolled): ~1.30ms
+2. Rust (owned): ~1.59ms
+3. Rust (reference): ~1.62ms
+4. Python (hand-rolled): ~53.03ms (40.8x slower than Rust hand-rolled)
+5. Python (reference): ~122.31ms (94.1x slower than Rust hand-rolled)
+6. TypeScript (hand-rolled): ~159.17ms (122.4x slower than Rust hand-rolled)
+7. TypeScript (reference): ~208.84ms (160.6x slower than Rust hand-rolled)
 
 Key observations:
-- Rust shows significant performance improvement after removing caching
-- Python maintains relatively consistent performance
-- TypeScript shows improved consistency in execution time with lower variance
-- All implementations maintain their relative performance rankings
+- Rust demonstrates exceptional performance, with the hand-rolled implementation being the fastest overall
+- Python's hand-rolled implementation shows significant performance advantage over its reference implementation
+- TypeScript also benefits from the hand-rolled approach but maintains its position as the slowest implementation
+- All implementations maintain their relative performance rankings with Rust being substantially faster than both Python and TypeScript
 
 ## Code Complexity Analysis
 
