@@ -161,7 +161,7 @@ All three implementations follow a similar algorithmic approach using iterators/
    - Zero-cost abstractions
    - Key features:
      - Iterator chaining with `chain()`
-     - Tuple windows with `tuple_windows()`
+     - Tuple windows with `tuples()`
      - Generic type parameters
      - Efficient memory usage
 

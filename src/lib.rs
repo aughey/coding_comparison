@@ -2,30 +2,6 @@ use std::{cell::RefCell, collections::HashMap, iter::Sum, ops::Add};
 
 use itertools::Itertools as _;
 
-/// Returns pairs of adjacent elements from an iterator.
-///
-/// This function takes an iterator and returns a new iterator that yields pairs
-/// of adjacent elements (current, next). It's similar to the standard library's
-/// `.windows(2)` but works on any iterator, not just slices.
-///
-/// # Arguments
-///
-/// * `iter` - The input iterator
-///
-/// # Returns
-///
-/// An iterator that yields pairs of adjacent elements
-fn pairwise<T>(mut iter: impl Iterator<Item = T>) -> impl Iterator<Item = (T, T)>
-where
-    T: Clone,
-{
-    let mut prev = iter.next();
-    iter.map(move |next| {
-        let p = prev.replace(next.clone()).unwrap();
-        (p, next)
-    })
-}
-
 /// Calculates the total distance of a route by summing the distances between consecutive destinations.
 ///
 /// # Arguments
@@ -41,10 +17,10 @@ fn total_distance_of_route<'a, Destination, Distance>(
     compute_distance: impl Fn((&Destination, &Destination)) -> Distance,
 ) -> Distance
 where
-    Destination: Clone + 'a,
+    Destination: 'a,
     Distance: Sum,
 {
-    pairwise(route).map(compute_distance).sum()
+    route.tuples().map(compute_distance).sum()
 }
 
 /// For all of the inner destinations, find the shortest path that visits all of them starting
@@ -81,6 +57,7 @@ where
         let inner_distance = total_distance_of_route(route.iter(), &compute_distance);
 
         // Add the distance from the start to the first destination and from the last destination to the end
+        // Safety: route.len() >= 1
         let total_distance = inner_distance
             + compute_distance((&start, &route[0]))
             + compute_distance((&route[route.len() - 1], &end));
@@ -93,11 +70,9 @@ where
         .min_by(|a, b| a.0.cmp(&b.0))
         .map(|(_, route)| route);
 
-    // Some extra gymnastics to build the return route with the start and end.
-    let mut route = Vec::with_capacity(min_route.as_ref().map(|r| r.len()).unwrap_or(0) + 2);
-    route.push(start);
-    if let Some(min_route) = min_route.as_ref() {
-        route.extend_from_slice(min_route.as_slice());
+    let mut route = vec![start];
+    if let Some(min_route) = min_route {
+        route.extend(min_route);
     }
     route.push(end);
     route
@@ -128,7 +103,7 @@ where
 /// A hand-optimized version of the traveling salesman algorithm for i32 destinations.
 ///
 /// This implementation is specific to i32 types and uses a different approach
-/// than the generic version for potential performance benefits.
+/// than the generic version for potential (negligible) performance benefits.
 ///
 /// # Arguments
 ///
@@ -155,7 +130,8 @@ pub fn hand_rolled_traveling_salesman<'a>(
         // Hand-calculate the distance of the pairs
         let mut distance = 0;
         for i in 1..perm.len() {
-            distance += perm[i].abs_diff(*perm[i - 1]);
+            // Safety: i >= 1 and i < perm.len()
+            distance += perm[i - 1].abs_diff(*perm[i]);
         }
 
         // Safety: Safe because perm.len() >= 1
@@ -170,12 +146,14 @@ pub fn hand_rolled_traveling_salesman<'a>(
             }
         }
         min_distance = Some(distance);
-        min_route = Some(perm.to_vec());
+        min_route = Some(perm);
     }
 
     // prepend start and append end
     let mut route = vec![start];
-    route.extend(min_route.unwrap());
+    if let Some(min_route) = min_route {
+        route.extend(min_route);
+    }
     route.push(end);
 
     route
