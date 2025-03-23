@@ -29,11 +29,9 @@ where
     // Create a route for each permutation that includes the start and end destinations
     let routes = permutations.map(|permutation| {
         std::iter::once(start.clone())
-            .into_iter()
-            .chain(permutation.into_iter())
+            .chain(permutation)
             .chain(std::iter::once(end.clone()))
     });
-
     // Calculate the distance for each route
     let distances = routes.map(|route| {
         (
