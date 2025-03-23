@@ -123,6 +123,96 @@ Key observations:
 - TypeScript shows the highest variance in execution time
 - All implementations show some performance regression compared to previous runs
 
+## Code Complexity Analysis
+
+All three implementations follow a similar algorithmic approach using iterators/generators. Here's a detailed comparison:
+
+### Line Count Analysis
+1. Rust (lib.rs):
+   - Total lines: ~120
+   - Core functions: ~80 lines
+   - Tests: ~40 lines
+   - Main algorithm: ~30 lines
+
+2. Python (traveling_salesman.py):
+   - Total lines: ~150
+   - Core functions: ~100 lines
+   - Tests: ~50 lines
+   - Main algorithm: ~40 lines
+
+3. TypeScript (traveling_salesman.ts):
+   - Total lines: ~180
+   - Core functions: ~130 lines
+   - Tests: ~50 lines
+   - Main algorithm: ~50 lines
+
+### Code Structure Comparison
+
+1. Rust:
+   - Uses iterator chains and combinators
+   - Most concise implementation
+   - Strong type system with generics
+   - Zero-cost abstractions
+   - Key features:
+     - Iterator chaining with `chain()`
+     - Tuple windows with `tuple_windows()`
+     - Generic type parameters
+     - Efficient memory usage
+
+2. Python:
+   - Uses generators and itertools
+   - Most readable implementation
+   - Dynamic typing with type hints
+   - Key features:
+     - Generator functions with `yield`
+     - itertools for permutations
+     - Type hints for clarity
+     - Simple caching with decorators
+
+3. TypeScript:
+   - Uses generators and iterables
+   - Most verbose implementation
+   - Static typing with generics
+   - Key features:
+     - Generator functions with `yield*`
+     - Iterable interfaces
+     - Explicit type annotations
+     - Map-based caching
+
+### Complexity Metrics
+
+1. Cyclomatic Complexity:
+   - Rust: Low (mostly linear iterator chains)
+   - Python: Medium (generator functions with multiple yields)
+   - TypeScript: Medium-High (explicit iteration handling)
+
+2. Memory Usage:
+   - Rust: Most efficient (zero-copy where possible)
+   - Python: Moderate (generator-based streaming)
+   - TypeScript: Moderate-High (array conversions)
+
+3. Type Safety:
+   - Rust: Strongest (compile-time guarantees)
+   - TypeScript: Strong (compile-time checks)
+   - Python: Weak (runtime type hints)
+
+### Key Differences
+
+1. Memory Management:
+   - Rust: Manual control with zero-cost abstractions
+   - Python: Automatic with garbage collection
+   - TypeScript: Automatic with V8 garbage collection
+
+2. Type System:
+   - Rust: Strong, static, with ownership
+   - TypeScript: Strong, static, with structural typing
+   - Python: Dynamic with optional type hints
+
+3. Iterator Implementation:
+   - Rust: Native iterator traits
+   - Python: Generator functions
+   - TypeScript: Generator functions with iterables
+
 ## Implementation Details
 
 All three implementations:
