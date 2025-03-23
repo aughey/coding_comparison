@@ -100,6 +100,18 @@ mod tests {
     }
 
     #[test]
+    fn test_traveling_salesman_empty_destinations() {
+        let destinations: Vec<i32> = vec![];
+        let start = 0;
+        let end = 1;
+
+        let compute_distance = |pair: (i32, i32)| pair.0.abs_diff(pair.1);
+
+        let result = traveling_salesman(destinations.into_iter(), start, end, compute_distance);
+        assert_eq!(result, Some(vec![0, 1]));
+    }
+
+    #[test]
     fn test_cached_fn() {
         let call_count = std::cell::Cell::new(0);
         let f = |x: i32| {
