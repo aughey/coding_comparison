@@ -84,12 +84,19 @@ mod tests {
         let start = 0;
         let end = 6;
 
+        // Works with references
         let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
         let compute_distance = cached_fn(compute_distance);
 
         let result = traveling_salesman(destinations.iter(), &start, &end, compute_distance);
-
         assert_eq!(result, Some(vec![&0, &1, &2, &3, &4, &5, &6]));
+
+        // Works with owned values
+        let compute_distance = |pair: (i32, i32)| pair.0.abs_diff(pair.1);
+        let compute_distance = cached_fn(compute_distance);
+
+        let result = traveling_salesman(destinations.into_iter(), start, end, compute_distance);
+        assert_eq!(result, Some(vec![0, 1, 2, 3, 4, 5, 6]));
     }
 
     #[test]
