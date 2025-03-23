@@ -1,0 +1,13 @@
+{
+    "name": "traveling-salesman",
+    "version": "1.0.0",
+    "description": "Traveling Salesman Problem implementation in TypeScript",
+    "main": "traveling_salesman.ts",
+    "scripts": {
+        "test": "ts-node traveling_salesman.ts"
+    },
+    "devDependencies": {
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
+}
