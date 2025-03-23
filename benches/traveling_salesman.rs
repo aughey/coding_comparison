@@ -11,7 +11,7 @@ fn generate_stress_test_destinations() -> Vec<i32> {
 fn benchmark_traveling_salesman(c: &mut Criterion) {
     let destinations = generate_stress_test_destinations();
     let start = 0;
-    let end = 9;
+    let end = destinations.iter().copied().max().unwrap_or(1) + 1;
 
     // Benchmark the referenced version
     c.bench_function("traveling_salesman_ref", |b| {

@@ -91,11 +91,15 @@ where
     }
 }
 
-pub fn hand_rolled_traveling_salesman<'a>(
+pub fn hand_rolled_traveling_salesman<'a, Destination, Distance>(
     destination: &'a [i32],
     start: &'a i32,
     end: &'a i32,
-) -> Option<Vec<&'a i32>> {
+) -> Option<Vec<&'a i32>>
+where
+    Destination: std::cmp::Ord + std::hash::Hash + Clone,
+    Distance: std::ops::Add<Output = Distance> + std::ops::Sub<Output = Distance> + Copy,
+{
     let mut min_distance = None;
     let mut min_route = None;
 
