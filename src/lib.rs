@@ -11,14 +11,14 @@ use itertools::Itertools as _;
 /// compute_distance: A function that computes the distance between two destinations.
 ///
 /// Returns the shortest path that visits all of the inner destinations starting at `start` and ending at `end`.
-pub fn traveling_salesman<Destinations, Destination, Distance>(
+pub fn traveling_salesman<'a, Destinations, Destination, Distance>(
     inner_destinations: Destinations,
-    start: &Destination,
-    end: &Destination,
-    compute_distance: impl Fn(&(Destination, Destination)) -> Distance,
-) -> Option<Vec<Destination>>
+    start: &'a Destination,
+    end: &'a Destination,
+    compute_distance: impl Fn((&'a Destination, &'a Destination)) -> Distance + 'a,
+) -> Option<Vec<&'a Destination>>
 where
-    Destinations: Iterator<Item = Destination> + ExactSizeIterator,
+    Destinations: Iterator<Item = &'a Destination> + ExactSizeIterator,
     Destination: Clone,
     Distance: Ord + Sum<Distance> + Clone,
 {
@@ -28,9 +28,9 @@ where
 
     // Create a route for each permutation that includes the start and end destinations
     let routes = permutations.map(|permutation| {
-        std::iter::once(start.clone())
-            .chain(permutation)
-            .chain(std::iter::once(end.clone()))
+        std::iter::once(start)
+            .chain(permutation.into_iter())
+            .chain(std::iter::once(end))
     });
     // Calculate the distance for each route
     let distances = routes.map(|route| {
@@ -38,7 +38,7 @@ where
             route
                 .clone()
                 .tuple_windows()
-                .map(|(a, b)| compute_distance(&(a, b)))
+                .map(|pair| compute_distance(pair))
                 .sum::<Distance>(),
             route,
         )
@@ -52,10 +52,12 @@ where
 }
 
 /// Caches the results of any function call.
-pub fn cached_fn<Input, Output>(f: impl Fn(Input) -> Output) -> impl Fn(Input) -> Output
+pub fn cached_fn<'a, Input, Output>(
+    f: impl Fn(Input) -> Output + 'a,
+) -> impl Fn(Input) -> Output + 'a
 where
-    Input: std::hash::Hash + std::cmp::Eq + Clone,
-    Output: Clone,
+    Input: std::hash::Hash + std::cmp::Eq + Clone + 'a,
+    Output: Clone + 'a,
 {
     let cache = HashMap::<Input, Output>::new();
     let cache = RefCell::new(cache);
@@ -84,14 +86,12 @@ mod tests {
         let start = 0;
         let end = 6;
 
-        let compute_distance = |pair: (i32, i32)| pair.0.abs_diff(pair.1);
+        let compute_distance = |pair: (&i32, &i32)| pair.0.abs_diff(*pair.1);
         let compute_distance = cached_fn(compute_distance);
 
-        let result = traveling_salesman(destinations.into_iter(), &start, &end, |pair| {
-            compute_distance((pair.0, pair.1))
-        });
+        let result = traveling_salesman(destinations.iter(), &start, &end, compute_distance);
 
-        assert_eq!(result, Some(vec![0, 1, 2, 3, 4, 5, 6]));
+        assert_eq!(result, Some(vec![&0, &1, &2, &3, &4, &5, &6]));
     }
 
     #[test]
