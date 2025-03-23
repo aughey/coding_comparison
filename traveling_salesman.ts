@@ -1,5 +1,5 @@
-import { permutations } from 'itertools-ts/lib/combinatorics';
 import { single, reduce } from 'itertools-ts';
+import { permutations } from 'itertools-ts/lib/combinatorics';
 
 /**
  * Calculates the total distance of a route by summing the distances between consecutive points.
@@ -83,9 +83,12 @@ export function travelingSalesman<T>(
     end: T,
     computeDistance: (pair: [T, T]) => number
 ): T[] {
+    // Convert to array to work with permutations function
+    const destinationsArray = Array.from(innerDestinations);
+
     // Get all permutations of the inner destinations
-    const destinationsCount = innerDestinations.length;
-    const permutationsIter = permutations(innerDestinations, destinationsCount);
+    const destinationsCount = destinationsArray.length;
+    const permutationsIter = permutations(destinationsArray, destinationsCount);
 
     // Create a route for each permutation that includes the start and end destinations
     const routes = generateRoutes(start, end, permutationsIter);
